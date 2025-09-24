@@ -11,8 +11,21 @@ export function setToken(token: string): void {
   export function removeToken(): void {
     localStorage.removeItem("token");
   }
+
+  export function getUserId(): number | null {
+
+   const token = localStorage.getItem("token");
+
+   if (token != null || token != undefined || token != "") {
+    const payload = decodeToken(token!!)
+    return Number(payload!!.id)
+   }
+   else {
+    return null
+   }
+
+  }
   
-  /** Decodifica el payload del JWT (sin validar firma) */
   export function decodeToken(token: string): UserPayload | null {
     try {
       const base64Payload = token.split(".")[1];

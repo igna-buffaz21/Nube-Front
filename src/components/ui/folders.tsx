@@ -1,6 +1,6 @@
 import type { File, Folder, PostFolderRequest } from "@/interfaces/folder.interface";
 import { folderService } from "@/services/folderService";
-import { ArrowLeft, Download, FolderIcon, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, Download, FolderIcon, Loader2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { fileService } from "@/services/fileService";
 import { FileUp, FolderPlus } from 'lucide-react'
+import { getUserId } from "@/auth/jwt";
+import { api_URL } from "@/services/api";
 
 export default function Folders() {
 
@@ -27,19 +29,33 @@ export default function Folders() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [imageScale, setImageScale] = useState(1);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [id_carpeta_actual, setCarpetaActual] = useState<number>(0);
   const [isDialogOpenSA, setIsDialogOpenSA] = useState(false); // ✅ Estado del dialog
   const [isDialogOpenCC, setIsDialogOpenCC] = useState(false); // ✅ Estado del dialog
-
+  const [user_id, setUserId] = useState<number | null>(0)
   const [isLoading, setIsLoading] = useState(false)
 
-  const user_id = 18 ////CAMBIAR
+  const [isLoadingSA, setIsLoadingSA] = useState(false)
+
+  const regexProhibidos = /[^a-zA-Z0-9 ]/; 
+
+
+  function obtenerId() {
+
+    setUserId(getUserId())
+
+  }
 
   async function fetchFolders() {
     try {
       setIsLoading(true)
+
+      if (user_id == 0 || user_id == undefined) {
+        console.log("USER ID NO VALIDO")
+        throw new Error()
+      }
 
       const response = await folderService.obtenerCarpetas({ user_id, parent_id });
 
@@ -131,63 +147,101 @@ export default function Folders() {
     console.log("FILE" + selectedFile)
     console.log("CARPETA ACTUAL: " + id_carpeta_actual)
     if (selectedFile) {
-      console.log(selectedFile);
+      console.log(selectedFile.type);
 
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('user_id', '18');
-      formData.append('folder_id', id_carpeta_actual.toString())
+      if (selectedFile.type == "image/jpeg" || selectedFile.type == "image/png" || selectedFile.type == "image/webp") {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('user_id', user_id!!.toString());
+        formData.append('folder_id', id_carpeta_actual.toString())
+  
+        try {
 
-      try {
-        const response = await fileService.subirArchivo(formData)
+          setIsLoadingSA(true)
 
-        fetchFolders()
+          const response = await fileService.subirArchivo(formData)
 
-        setIsDialogOpenSA(false);
-        setSelectedFile(null);
-
-        toast.success("Archivo subido correctamente")
-
-        console.log(response)
+          setIsLoadingSA(false)
+  
+          fetchFolders()
+  
+          setIsDialogOpenSA(false);
+          setSelectedFile(null);
+  
+          toast.success("Archivo subido correctamente")
+  
+          console.log(response)
+        }
+        catch (error) {
+          setIsLoadingSA(false)
+          toast.error("Error al subir el archivo, intentelo nuevamente!")
+          console.log(error)
+        }
       }
-      catch (error) {
-        toast.error("Error al subir el archivo, intentelo nuevamente!")
-        console.log(error)
+      else {
+        toast.error("Solo se permiten archivos PNG | JPG | WEBP")
       }
     }
   }
 
   const handleSubmitFolder = async () => {
     if (selectedFolder) {
-      try {
-        const data: PostFolderRequest = {
-          user_id: 18, /////CAMBIAR
-          nombre: selectedFolder,
-          parent_id: id_carpeta_actual
+      if (!regexProhibidos.test(selectedFolder)) {
+        try {
+          const data: PostFolderRequest = {
+            user_id: user_id!!,
+            nombre: selectedFolder,
+            parent_id: id_carpeta_actual
+          }
+  
+          const response = await folderService.crearCarpeta(data)
+  
+          console.log(response)
+  
+          toast.success("Carpeta creada correctamente")
+  
+          setIsDialogOpenCC(false);
+          setSelectedFolder(null);
+  
+          fetchFolders()
+  
         }
-
-        const response = await folderService.crearCarpeta(data)
-
-        console.log(response)
-
-        toast.success("Carpeta creada correctamente")
-
-        setIsDialogOpenCC(false);
-        setSelectedFolder(null);
-
-        fetchFolders()
-
+        catch (error) {
+          toast.error("Error al crear la carpeta, intentelo nuevamente!")
+          console.log(error)
+        }
       }
-      catch (error) {
-        toast.error("Error al crear la carpeta, intentelo nuevamente!")
-        console.log(error)
+      else {
+        toast.error("Solo se permiten Letras y Numeros")
+
+        setIsDialogOpenCC(false)
+        
+        setSelectedFolder(null)
       }
     }
   }
 
+  const handleDialogChange = (open: any) => {
+    setIsDialogOpenSA(open)
+
+    if (!open) {
+      // 👉 el modal se cerró (por cualquier motivo)
+      setSelectedFile(null)      // resetea el archivo en memoria
+      setIsLoadingSA(false) // limpia loading si quedó activo
+    }
+  }
+
   useEffect(() => {
-    fetchFolders();
+    if (user_id != undefined && user_id != 0){
+      console.log("USER ID: " + user_id)
+      fetchFolders();
+    }
   }, [user_id, parent_id]
+)
+
+  useEffect(() => {
+    obtenerId()
+  }, []
 )
 
 return (
@@ -197,10 +251,10 @@ return (
   <h2 className="text-2xl font-semibold text-foreground">Mis carpetas</h2>
   
   <div className="flex gap-2">
-    <Dialog open={isDialogOpenSA} onOpenChange={setIsDialogOpenSA}>
-      <form>
+  <Dialog open={isDialogOpenSA} onOpenChange={handleDialogChange}>
+      <form onSubmit={handleSubmit}>
         <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2">
             <FileUp className="w-4 h-4" />
           </Button>
         </DialogTrigger>
@@ -210,22 +264,27 @@ return (
           </DialogHeader>
           <div className="grid gap-4">
             <div className="grid w-full max-w-sm items-center gap-3">
-              <Label htmlFor="picture">Picture</Label>
-              <Input
-                id="picture"
-                type="file"
-                onChange={handleFileChange}
-              />
+              <Label htmlFor="picture">Se permite PNG, JPG y WEBP</Label>
+              <Input id="picture" type="file" onChange={handleFileChange} />
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline" type="button">
+                Cancelar
+              </Button>
             </DialogClose>
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-            >Subir Archivo</Button>
+
+            <Button type="submit" onClick={handleSubmit}>
+              {isLoadingSA ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Subiendo...
+                </>
+              ) : (
+                "Subir Archivo"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </form>
@@ -244,7 +303,6 @@ return (
           </DialogHeader>
           <div className="grid gap-4">
             <div className="grid w-full max-w-sm items-center gap-3">
-              <Label htmlFor="email">Picture</Label>
               <Input
                 id="email"
                 type="text"
@@ -316,7 +374,7 @@ return (
         >
           <div className="relative w-full h-40 mb-2 overflow-hidden rounded-lg">
             <img 
-              src={`http://192.168.0.50:3000/api/archivos/servirArchivo?id_file=${archivo.id}&user_id=18`} 
+              src={`http://${api_URL}:3000/api/archivos/servirArchivo?id_file=${archivo.id}&user_id=${user_id}`} 
               alt={archivo.original_name} 
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             />
@@ -348,7 +406,7 @@ return (
           {selectedImage && (
             <div className="relative max-w-full max-h-[60vh] overflow-hidden rounded-lg bg-gray-50 flex items-center justify-center">
               <img
-                src={`http://192.168.0.50:3000/api/archivos/servirArchivo?id_file=${selectedImage.id}&user_id=18`}
+                src={`http://${api_URL}:3000/api/archivos/servirArchivo?id_file=${selectedImage.id}&user_id=${user_id}`}
                 alt={selectedImage.original_name}
                 className="max-w-full max-h-full object-contain transition-transform duration-200"
                 style={{ transform: `scale(${imageScale})` }}

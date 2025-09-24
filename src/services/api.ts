@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+export const api_URL = '192.168.45.134'
+
 const api = axios.create({
-    baseURL: 'http://192.168.0.50:3000/api',
+    baseURL: `http://${api_URL}:3000/api`,
     headers: {
         'Content-Type': undefined // Esto permite que Axios lo detecte automáticamente
     },

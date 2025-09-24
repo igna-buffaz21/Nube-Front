@@ -6,21 +6,29 @@ import { useEffect, useState } from 'react';
 import { fileService } from '@/services/fileService';
 import type { ObtenerPesoFile } from '@/interfaces/file.interface';
 import toast from 'react-hot-toast';
+import { getUserId } from '@/auth/jwt';
 
 export function StorageChart() {
     const [usedSpaceB, setusedSpaceB] = useState(0)
 
     const [usedSpaceMB, setusedSpaceMB] = useState(0)
 
+    const [user_id, setUserId] = useState<number | null>(0)
+
     const maxSpaceGB = 1;
     const maxSpaceMB = maxSpaceGB * 1024; // 15GB en MB
     const availableSpaceMB = maxSpaceMB - usedSpaceMB;
     const usedPercentage = (usedSpaceMB / maxSpaceMB) * 100;
 
+  function obtenerId() {
+
+    setUserId(getUserId())
+
+  }
     async function obtenerAlmacenamientoUsado() {
         try {
             const data: ObtenerPesoFile = {
-                user_id: 18
+                user_id: user_id!!
             }
 
             const response = await fileService.obtenerAlmacenamientoUsado(data)
@@ -36,9 +44,18 @@ export function StorageChart() {
     }
 
     useEffect(() => {
-        obtenerAlmacenamientoUsado()
+        obtenerId()
     }, []
-)
+    )
+
+    
+    useEffect(() => {
+        if (user_id != undefined && user_id != 0){
+            console.log("USER ID: " + user_id)
+            obtenerAlmacenamientoUsado()
+          }
+    }, [user_id]
+    )
 
     useEffect(() => {
         console.log(usedSpaceB)

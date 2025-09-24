@@ -15,13 +15,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { getUserId } from "@/auth/jwt"
+import { authService } from "@/services/authService"
+import type { UserResponse } from "@/interfaces/register.interface"
+
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Plataforma",
@@ -43,6 +42,39 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = React.useState<UserResponse>()
+  const [userId, setUserId] = React.useState<number | null>(0)
+
+  function obtenerId() {
+
+    setUserId(getUserId())
+
+  }
+
+  async function obtenerDataUsuario() {
+    try {
+      const userr = await authService.getData(userId!!);
+
+      setUser(userr)
+    }
+    catch(error) {
+      console.log("ERROR AL TRAER DATA DEL USER " + error)
+    }
+  }
+
+  React.useEffect(() => {
+    obtenerId()
+    }, []
+  )
+
+  React.useEffect(() => {
+    if (userId != 0) {
+      obtenerDataUsuario()
+    }
+    }, [userId]
+  )
+
+
   return (
     <Sidebar
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
@@ -69,7 +101,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user!!} />
       </SidebarFooter>
     </Sidebar>
   )
