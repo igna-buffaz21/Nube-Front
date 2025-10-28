@@ -1,6 +1,7 @@
 import type { UserPayload } from "@/interfaces/jwt.interface";
 
 export function setToken(token: string): void {
+    console.log("GUARDANDO TOKEN EN LS " + token);
     localStorage.setItem("token", token);
   }
   

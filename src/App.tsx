@@ -7,6 +7,7 @@ import { ToastComponent } from './components/ui/toast' // ajusta la ruta
 import { AuthProvider } from './auth/authContext'
 import { ProtectedRoute } from './auth/protectedRoute'
 import { Storage } from './pages/storage'
+import LogsPage from './pages/logs'
 
 
 function App() {
@@ -33,6 +34,15 @@ function App() {
         element={
         <ProtectedRoute>
           <Storage />
+        </ProtectedRoute>
+        } 
+        />
+
+        <Route 
+        path="/logs" 
+        element={
+        <ProtectedRoute>
+          <LogsPage />
         </ProtectedRoute>
         } 
         />

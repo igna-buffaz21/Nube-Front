@@ -35,7 +35,11 @@ const data = {
         {
           title: "Almacenamiento",
           url: "/storage",
-        }
+        },
+        {
+          title: "Logs",
+          url: "/logs",
+        },
       ],
     }
   ],
