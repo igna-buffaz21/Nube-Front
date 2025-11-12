@@ -43,6 +43,7 @@ export function LoginForm({
       const token = response.token
 
       login(token)
+      
       toast.success('Inicio de sesión exitoso, redirigiendo a home...')
 
       setTimeout(() => {
